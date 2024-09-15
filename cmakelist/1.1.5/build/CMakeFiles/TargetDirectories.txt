@@ -1,0 +1,6 @@
+/data/share/cmakelist/1.1.5/build/CMakeFiles/MyProject.dir
+/data/share/cmakelist/1.1.5/build/CMakeFiles/edit_cache.dir
+/data/share/cmakelist/1.1.5/build/CMakeFiles/rebuild_cache.dir
+/data/share/cmakelist/1.1.5/build/lib/CMakeFiles/Dir1.dir
+/data/share/cmakelist/1.1.5/build/lib/CMakeFiles/edit_cache.dir
+/data/share/cmakelist/1.1.5/build/lib/CMakeFiles/rebuild_cache.dir

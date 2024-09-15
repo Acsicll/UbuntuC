@@ -1,0 +1,13 @@
+/data/share/cmakelist/1.1.3/3.2/build/CMakeFiles/edit_cache.dir
+/data/share/cmakelist/1.1.3/3.2/build/CMakeFiles/rebuild_cache.dir
+/data/share/cmakelist/1.1.3/3.2/build/CMakeFiles/list_install_components.dir
+/data/share/cmakelist/1.1.3/3.2/build/CMakeFiles/install.dir
+/data/share/cmakelist/1.1.3/3.2/build/CMakeFiles/install/local.dir
+/data/share/cmakelist/1.1.3/3.2/build/CMakeFiles/install/strip.dir
+/data/share/cmakelist/1.1.3/3.2/build/src/CMakeFiles/MyProject.dir
+/data/share/cmakelist/1.1.3/3.2/build/src/CMakeFiles/edit_cache.dir
+/data/share/cmakelist/1.1.3/3.2/build/src/CMakeFiles/rebuild_cache.dir
+/data/share/cmakelist/1.1.3/3.2/build/src/CMakeFiles/list_install_components.dir
+/data/share/cmakelist/1.1.3/3.2/build/src/CMakeFiles/install.dir
+/data/share/cmakelist/1.1.3/3.2/build/src/CMakeFiles/install/local.dir
+/data/share/cmakelist/1.1.3/3.2/build/src/CMakeFiles/install/strip.dir

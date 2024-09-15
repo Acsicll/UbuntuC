@@ -1,0 +1,2 @@
+/usr/local/lib/libDir1.so
+/usr/local/include/dir1.h

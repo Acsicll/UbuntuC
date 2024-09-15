@@ -1,0 +1,4 @@
+/data/share/cmakelist/build/CMakeFiles/curr.dir
+/data/share/cmakelist/build/CMakeFiles/curr2.dir
+/data/share/cmakelist/build/CMakeFiles/edit_cache.dir
+/data/share/cmakelist/build/CMakeFiles/rebuild_cache.dir

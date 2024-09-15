@@ -1,0 +1,1 @@
+/usr/bin/cc -rdynamic CMakeFiles/MyProject.dir/main.c.o -o MyProject   -L/data/share/cmakelist/1.1.5/lib  -Wl,-rpath,/data/share/cmakelist/1.1.5/lib:/data/share/cmakelist/1.1.5/build/lib lib/libDir1.so 

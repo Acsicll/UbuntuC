@@ -1,0 +1,1 @@
+/usr/bin/cc -rdynamic CMakeFiles/MyProject.dir/main.c.o CMakeFiles/MyProject.dir/dir1/dir.c.o CMakeFiles/MyProject.dir/dir2/dir.c.o -o MyProject 
