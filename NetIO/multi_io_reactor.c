@@ -12,8 +12,40 @@
 #include <sys/poll.h>
 #include <sys/epoll.h>
 
+#define BUFFER_LENGTH 1024
+typedef int (*RCALLBACK)(int fd);
+
+int epfd;
+
+struct conn_item{
+    int fd;
+    // char buffer[BUFFER_LENGTH];
+    // int idx;
+    
+    char rbuffer[BUFFER_LENGTH];
+    int rlength;
+
+    char wbuffer[BUFFER_LENGTH];
+    int wlength;
+
+    // out of io 
+    union 
+    {
+        RCALLBACK accept_call;
+        RCALLBACK recv_call;
+    }recv_t;
+
+
+    RCALLBACK send_call;
+};
+
+struct conn_item connlist[1024] = { 0 };
 
 void client_thread(void *arg);
+int _accept_callback(int fd);
+int _recv_callback(int fd);
+int _send_callback(int fd);
+int set_event(int fd, int event, int flag);
 
 int main() {
     int sockfd = socket(AF_INET,SOCK_STREAM,0);
@@ -34,6 +66,9 @@ int main() {
         perror("listen error\n");
         return -1;
     }
+
+    connlist[sockfd].fd = sockfd;
+    connlist[sockfd].recv_t.accept_call = _accept_callback;
 #if 0
     struct sockaddr_in clientaddr;
     socklen_t len = sizeof(clientaddr);
@@ -161,13 +196,13 @@ int main() {
     }
 
 #else // epoll
-    int epfd = epoll_create(1);
+    epfd = epoll_create(1);
 
-    struct epoll_event ev;
-    ev.events = EPOLLIN;
-    ev.data.fd = sockfd;
-
-    epoll_ctl(epfd, EPOLL_CTL_ADD,sockfd,&ev);
+    // struct epoll_event ev;
+    // ev.events = EPOLLIN;
+    // ev.data.fd = sockfd;
+    //epoll_ctl(epfd, EPOLL_CTL_ADD,sockfd,&ev);
+    set_event(sockfd,EPOLLIN,1);
 
     struct epoll_event events[1024] = { 0 };
     while(1) {
@@ -177,6 +212,10 @@ int main() {
         for(i = 0; i < nready; i++) {
             int connfd = events[i].data.fd;
             if(sockfd == connfd) {
+#if 1
+                //int clientfd = _accept_callback(connfd);
+                int clientfd = connlist[sockfd].recv_t.accept_call(connfd);
+#else
                 struct sockaddr_in clientaddr;
                 socklen_t len = sizeof(clientaddr);
                 int clientfd = accept(sockfd,(struct sockaddr*)&clientaddr,&len);
@@ -184,8 +223,14 @@ int main() {
                 ev.events = EPOLLIN;
                 ev.data.fd = clientfd;
                 epoll_ctl(epfd, EPOLL_CTL_ADD, clientfd, &ev);
+#endif
                 printf("clientfd : %d \n",clientfd);
             }else if(events[i].events & EPOLLIN) {
+#if 1
+                //int count = _recv_callback(connfd);
+                int count = connlist[connfd].recv_t.recv_call(connfd);
+                char* buffer = connlist[connfd].rbuffer;
+#else
                 char buffer[128] = { 0 };
                 int count = recv(connfd, buffer, 128, 0);
                 if(count == 0){
@@ -195,7 +240,13 @@ int main() {
                     continue;
                 }
                 send(connfd, buffer, count, 0);
-                printf("clientfd : %d, count : %d, message : %s\n",connfd,count,buffer);
+#endif
+                count == 0 ? printf("\n") : printf("--> recv : %s\n",buffer);
+            }else if(events[i].events & EPOLLOUT) {
+                //int count = _send_callback(connfd);
+                char* buffer = connlist[connfd].wbuffer;
+                printf("--> send : %s\n",buffer);
+                int count = connlist[connfd].send_call(connfd);
             }
         }
     }
@@ -220,4 +271,92 @@ void client_thread(void* arg){
         send(clientfd,buffer,count,0);
     }
     close(clientfd);
+}
+
+int _accept_callback(int fd) {
+    struct sockaddr_in clientaddr;
+    socklen_t len = sizeof(clientaddr);
+    int clientfd = accept(fd,(struct sockaddr*)&clientaddr,&len);
+
+    // struct epoll_event ev;
+    // ev.events = EPOLLIN;
+    // ev.data.fd = clientfd;
+    // epoll_ctl(epfd, EPOLL_CTL_ADD, clientfd, &ev);
+    if(-1 == set_event(clientfd, EPOLLIN, 1)){
+        perror("accept call back error\n");
+        return -1;
+    }
+
+    connlist[clientfd].fd = clientfd;
+    memset(connlist[clientfd].rbuffer,0,BUFFER_LENGTH);
+    connlist[clientfd].rlength = 0;
+    memset(connlist[clientfd].wbuffer,0,BUFFER_LENGTH);
+    connlist[clientfd].wlength = 0;
+    connlist[clientfd].recv_t.recv_call = _recv_callback;
+    connlist[clientfd].send_call = _send_callback;
+
+    return clientfd;
+}
+
+int _recv_callback(int fd) {
+    char *buffer = connlist[fd].rbuffer;
+    int count = recv(fd, buffer+connlist[fd].rlength, BUFFER_LENGTH, 0);
+    if(count == 0){
+        printf("closing connection\n");
+        epoll_ctl(epfd, EPOLL_CTL_DEL, fd, NULL);
+        close(fd);
+        return -1;
+    }
+    connlist[fd].rlength += count;
+
+#if 1 // echo 
+    memcpy(connlist[fd].wbuffer,connlist[fd].rbuffer,connlist[fd].rlength);
+    connlist[fd].wlength = connlist[fd].rlength;
+#endif
+
+    if(-1 == set_event(fd, EPOLLOUT, 0)){
+        perror("recv call back error\n");
+        return -1;
+    }
+
+    return count;
+}
+
+int _send_callback(int fd) {
+    char *buffer = connlist[fd].wbuffer;
+    int count = send(fd, buffer+connlist[fd].wlength, BUFFER_LENGTH, 0);
+    if(count == -1){
+        return -1;
+    }
+
+    if(-1 == set_event(fd, EPOLLIN, 0)){
+        perror("send call back error\n");
+        return -1;
+    }
+    
+    return count;
+}
+
+int set_event(int fd, int event, int flag) {
+    struct epoll_event ev;
+    int isError;
+    if(flag) {
+        ev.events = event;
+        ev.data.fd = fd;
+        isError = epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &ev);
+        if(isError == -1){
+            goto error;
+        }
+        return isError;
+    }else {
+        ev.events = event;
+        ev.data.fd = fd;
+        isError = epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &ev);
+        if( isError == -1){
+            goto error;
+        }
+        return isError;
+    }
+error:
+    return isError;
 }
